@@ -1,1 +1,13 @@
-# MongoConsoleApp
+# MongoConsoleApp HTML Form + C# + MongoDB
+- HTML form (`form.html`) collects:
+  - Name  
+  - Surname  
+  - ID Number  
+  - Date of Birth  
+- Data is submitted (POST) to the C# console app.
+- Console app validates:
+  - **ID Number** = numeric and 13 digits long  
+  - **Date of Birth** = `dd/mm/yyyy` format  
+  - **No duplicate ID Numbers** in the database
+- Valid records are saved into **MongoDB**.
+- If validation fails → user is informed and form is repopulated.
