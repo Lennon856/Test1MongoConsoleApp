@@ -1,0 +1,22 @@
+﻿<!DOCTYPE html>
+<html>
+<body>
+
+    <h2>Capture User Details</h2>
+
+    <form action="http://localhost:5000/submit" method="post">
+
+        <label for="name">Name:</label><br>
+        <input type="text" id="name" name="name"><br>
+        <label for="surname">Surname:</label><br>
+        <input type="text" id="surname" name="surname"><br><br>
+        <label for="idNumber">ID Number:</label>
+        <input id="idNumber" type="text" name="idNumber" maxlength="13" pattern="\d{13}" title="Must be exactly 13 digits" required> <br><br>
+        <label for="dob">Date of Birth(dd/mm/yyyy):</label>
+        <input id="dob" type="text" name="dob" pattern="\d{2}/\d{2}/\d{4}" title="Format:dd/mm/yyyy" required> <br><br>
+        <input type="submit" value="POST">
+        <input type="reset" value="CANCEL">
+    </form>
+
+</body>
+</html>
