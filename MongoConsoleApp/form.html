@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <body>
 
@@ -8,12 +8,18 @@
 
         <label for="name">Name:</label><br>
         <input type="text" id="name" name="name"><br>
+
         <label for="surname">Surname:</label><br>
-        <input type="text" id="surname" name="surname"><br><br>
-        <label for="idNumber">ID Number:</label>
-        <input id="idNumber" type="text" name="idNumber" maxlength="13" pattern="\d{13}" title="Must be exactly 13 digits" required> <br><br>
-        <label for="dob">Date of Birth(dd/mm/yyyy):</label>
-        <input id="dob" type="text" name="dob" pattern="\d{2}/\d{2}/\d{4}" title="Format:dd/mm/yyyy" required> <br><br>
+        <input type="text" id="surname" name="surname"><br>
+
+        <label for="idNumber">ID Number:</label><br>
+        <input id="idNumber" type="text" name="idNumber" maxlength="13"
+               pattern="\d{13}" title="Must be exactly 13 digits" required><br>
+
+        <label for="dob">Date of Birth (dd/mm/yyyy):</label><br>
+        <input id="dob" type="text" name="dob"
+               pattern="\d{2}/\d{2}/\d{4}" title="Format: dd/mm/yyyy" required><br><br>
+
         <input type="submit" value="POST">
         <input type="reset" value="CANCEL">
     </form>
