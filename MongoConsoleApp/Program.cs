@@ -4,6 +4,7 @@ using System;
 using System.Net;
 using System.Text;
 using System.Web;
+using System.Text.RegularExpressions;
 
 public class User
 {
@@ -18,72 +19,111 @@ class Program
 {
     static void Main(string[] args)
     {
-        // 1. Start a tiny web server on localhost:5000
+        // Start web server
         HttpListener listener = new HttpListener();
         listener.Prefixes.Add("http://localhost:5000/");
         listener.Start();
         Console.WriteLine("Listening on http://localhost:5000 ...");
 
-        // 2. Connect to MongoDB
+        // Connect to Mongo
         var client = new MongoClient("mongodb://localhost:27017");
         var database = client.GetDatabase("TestDB");
         var collection = database.GetCollection<User>("Users");
 
-        // 3. Keep listening for requests
         while (true)
         {
-            var context = listener.GetContext();    // Wait for browser request
+            var context = listener.GetContext();
             var request = context.Request;
             var response = context.Response;
 
             if (request.HttpMethod == "POST" && request.Url.AbsolutePath == "/submit")
             {
-                // 4. Read form data (sent from HTML page)
                 string body;
                 using (var reader = new System.IO.StreamReader(request.InputStream, request.ContentEncoding))
-                {
                     body = reader.ReadToEnd();
-                }
 
                 var data = HttpUtility.ParseQueryString(body);
-                string name = data["name"];
-                string surname = data["surname"];
-                string idNumber = data["idNumber"];
-                string dob = data["dob"];
+                string name = data["name"] ?? "";
+                string surname = data["surname"] ?? "";
+                string idNumber = data["idNumber"] ?? "";
+                string dob = data["dob"] ?? "";
 
-                string message = "";
+                string html;
 
-                // 5. Validation
+                // Validation
                 if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(surname))
                 {
-                    message = "Error: Name and Surname are required.";
+                    html = RenderForm(name, surname, idNumber, dob, "Error: Name and Surname are required.");
                 }
                 else if (idNumber.Length != 13 || !long.TryParse(idNumber, out _))
                 {
-                    message = "Error: ID Number must be 13 digits.";
+                    html = RenderForm(name, surname, idNumber, dob, "Error: ID Number must be 13 digits.");
                 }
-                else if (!System.Text.RegularExpressions.Regex.IsMatch(dob, @"^\d{2}/\d{2}/\d{4}$"))
+                else if (!Regex.IsMatch(dob, @"^\d{2}/\d{2}/\d{4}$"))
                 {
-                    message = "Error: Date must be dd/mm/yyyy.";
+                    html = RenderForm(name, surname, idNumber, dob, "Error: Date must be dd/mm/yyyy.");
                 }
                 else if (collection.Find(u => u.IdNumber == idNumber).Any())
                 {
-                    message = "Error: Duplicate ID Number.";
+                    html = RenderForm(name, surname, idNumber, dob, "Error: Duplicate ID Number.");
                 }
                 else
                 {
-                    // 6. Save to MongoDB
                     var user = new User { Name = name, Surname = surname, IdNumber = idNumber, DateOfBirth = dob };
                     collection.InsertOne(user);
-                    message = "Success: User saved!";
+                    html = RenderForm("", "", "", "", "Success: User saved!");
                 }
 
-                // 7. Send response back to browser
-                byte[] buffer = Encoding.UTF8.GetBytes(message);
+                // Return HTML response
+                byte[] buffer = Encoding.UTF8.GetBytes(html); // Convert HTML text into bytes
+                response.ContentType = "text/html";
+                response.ContentLength64 = buffer.Length;
+                response.OutputStream.Write(buffer, 0, buffer.Length);
+                response.OutputStream.Close();
+            }
+            else
+            {
+                // Fallback: serve default form if accessed directly
+                string html = RenderForm("", "", "", "");
+                byte[] buffer = Encoding.UTF8.GetBytes(html);
+                response.ContentType = "text/html";
                 response.ContentLength64 = buffer.Length;
                 response.OutputStream.Write(buffer, 0, buffer.Length);
                 response.OutputStream.Close();
             }
         }
+    }
+    // This method builds and returns the HTML form as a string
+    private static string RenderForm(string name, string surname, string idNumber, string dob, string message = "")
+    {
+        return $@"<!DOCTYPE html>
+<html>
+<body>
+    <h2>Capture User Details</h2>
+
+    {(string.IsNullOrEmpty(message) ? "" : $"<p style='color:red'>{WebUtility.HtmlEncode(message)}</p>")}
+
+    <form action=""/submit"" method=""post"">
+        <label for=""name"">Name:</label><br>
+        <input type=""text"" id=""name"" name=""name"" value=""{WebUtility.HtmlEncode(name)}""><br>
+
+        <label for=""surname"">Surname:</label><br>
+        <input type=""text"" id=""surname"" name=""surname"" value=""{WebUtility.HtmlEncode(surname)}""><br>
+
+        <label for=""idNumber"">ID Number:</label><br>
+        <input id=""idNumber"" type=""text"" name=""idNumber"" maxlength=""13""
+               pattern=""\d{{13}}"" title=""Must be exactly 13 digits"" required
+               value=""{WebUtility.HtmlEncode(idNumber)}""><br>
+
+        <label for=""dob"">Date of Birth(dd/mm/yyyy):</label><br>
+        <input id=""dob"" type=""text"" name=""dob"" pattern=""\d{{2}}/\d{{2}}/\d{{4}}""
+               title=""Format:dd/mm/yyyy"" required
+               value=""{WebUtility.HtmlEncode(dob)}""><br><br>
+
+        <input type=""submit"" value=""POST"">
+        <input type=""reset"" value=""CANCEL"">
+    </form>
+</body>
+</html>";
     }
 }
