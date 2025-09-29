@@ -1,4 +1,4 @@
-﻿using MongoDB.Bson;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using System;
 using System.Net;
@@ -25,7 +25,7 @@ class Program
         listener.Start();
         Console.WriteLine("Listening on http://localhost:5000 ...");
 
-        // Connect to Mongo
+        // Connect to MongoDB
         var client = new MongoClient("mongodb://localhost:27017");
         var database = client.GetDatabase("TestDB");
         var collection = database.GetCollection<User>("Users");
@@ -35,6 +35,8 @@ class Program
             var context = listener.GetContext();
             var request = context.Request;
             var response = context.Response;
+
+            string html;
 
             if (request.HttpMethod == "POST" && request.Url.AbsolutePath == "/submit")
             {
@@ -48,81 +50,155 @@ class Program
                 string idNumber = data["idNumber"] ?? "";
                 string dob = data["dob"] ?? "";
 
-                string html;
+                string errorMsg = "";
+                string successMsg = "";
 
                 // Validation
-                if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(surname))
-                {
-                    html = RenderForm(name, surname, idNumber, dob, "Error: Name and Surname are required.");
-                }
+                if (string.IsNullOrWhiteSpace(name))
+                    errorMsg = "Name is required.";
+                else if (string.IsNullOrWhiteSpace(surname))
+                    errorMsg = "Surname is required.";
                 else if (idNumber.Length != 13 || !long.TryParse(idNumber, out _))
-                {
-                    html = RenderForm(name, surname, idNumber, dob, "Error: ID Number must be 13 digits.");
-                }
-                else if (!Regex.IsMatch(dob, @"^\d{2}/\d{2}/\d{4}$"))
-                {
-                    html = RenderForm(name, surname, idNumber, dob, "Error: Date must be dd/mm/yyyy.");
-                }
+                    errorMsg = "ID Number must be exactly 13 digits.";
+                else if (!Regex.IsMatch(dob, @"^\d{4}-\d{2}-\d{2}$")) // matches <input type="date">
+                    errorMsg = "Date must be yyyy-mm-dd format.";
                 else if (collection.Find(u => u.IdNumber == idNumber).Any())
-                {
-                    html = RenderForm(name, surname, idNumber, dob, "Error: Duplicate ID Number.");
-                }
+                    errorMsg = "Duplicate ID Number.";
                 else
                 {
                     var user = new User { Name = name, Surname = surname, IdNumber = idNumber, DateOfBirth = dob };
                     collection.InsertOne(user);
-                    html = RenderForm("", "", "", "", "Success: User saved!");
+                    successMsg = "Data saved successfully!";
                 }
 
-                // Return HTML response
-                byte[] buffer = Encoding.UTF8.GetBytes(html); // Convert HTML text into bytes
-                response.ContentType = "text/html";
-                response.ContentLength64 = buffer.Length;
-                response.OutputStream.Write(buffer, 0, buffer.Length);
-                response.OutputStream.Close();
+                html = RenderForm(name, surname, idNumber, dob, errorMsg, successMsg);
             }
             else
             {
-                // Fallback: serve default form if accessed directly
-                string html = RenderForm("", "", "", "");
-                byte[] buffer = Encoding.UTF8.GetBytes(html);
-                response.ContentType = "text/html";
-                response.ContentLength64 = buffer.Length;
-                response.OutputStream.Write(buffer, 0, buffer.Length);
-                response.OutputStream.Close();
+                // Default page load
+                html = RenderForm("", "", "", "", "", "");
+            }
+
+            // Return HTML response
+            byte[] buffer = Encoding.UTF8.GetBytes(html);
+            response.ContentType = "text/html; charset=UTF-8";
+            response.ContentLength64 = buffer.Length;
+            using (var output = response.OutputStream)
+            {
+                output.Write(buffer, 0, buffer.Length);
             }
         }
     }
-    // This method builds and returns the HTML form as a string
-    private static string RenderForm(string name, string surname, string idNumber, string dob, string message = "")
+
+    // Render styled form with error/success messages
+    private static string RenderForm(string name, string surname, string idNumber, string dob, string error = "", string success = "")
     {
         return $@"<!DOCTYPE html>
-<html>
+<html lang=""en"">
+<head>
+    <meta charset=""UTF-8"" />
+    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"" />
+    <title>User Input Form</title>
+    <style>
+        body {{
+            background: #f7f7f7;
+            font-family: Arial, sans-serif;
+        }}
+        .container {{
+            width: 400px;
+            margin: 50px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            padding: 20px;
+        }}
+        .container h2 {{
+            text-align: center;
+            color: #333;
+        }}
+        label {{
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }}
+        input[type=text], input[type=date] {{
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }}
+        input[type=text]:focus, input[type=date]:focus {{
+            outline: 3px solid #FFCC00;
+            box-shadow: 0 0 10px #FFCC00;
+            border-color: #FFCC00;
+        }}
+        input[name=dob] {{
+            background-color: #FFFBCC;
+        }}
+        .error {{
+            color: red;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }}
+        .success {{
+            color: green;
+            margin-bottom: 10px;
+        }}
+        .buttons {{
+            text-align: center;
+            margin-top: 10px;
+        }}
+        .buttons button {{
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            margin: 0 5px;
+        }}
+        .buttons .post {{
+            background-color: #4CAF50;
+        }}
+        .buttons .cancel {{
+            background-color: #FA8072;
+        }}
+        .buttons button:hover {{
+            opacity: 0.9;
+        }}
+    </style>
+</head>
 <body>
-    <h2>Capture User Details</h2>
+    <div class=""container"">
+        <h2>User Information</h2>
 
-    {(string.IsNullOrEmpty(message) ? "" : $"<p style='color:red'>{WebUtility.HtmlEncode(message)}</p>")}
+        {(string.IsNullOrEmpty(success) ? "" : $"<div class='success'>{success}</div>")}
+        {(string.IsNullOrEmpty(error) ? "" : $"<div class='error'>{error}</div>")}
 
-    <form action=""/submit"" method=""post"">
-        <label for=""name"">Name:</label><br>
-        <input type=""text"" id=""name"" name=""name"" value=""{WebUtility.HtmlEncode(name)}""><br>
+        <form method=""post"" action=""/submit"">
+            <label>Name:</label>
+            <input type=""text"" name=""name"" value=""{WebUtility.HtmlEncode(name)}"" />
 
-        <label for=""surname"">Surname:</label><br>
-        <input type=""text"" id=""surname"" name=""surname"" value=""{WebUtility.HtmlEncode(surname)}""><br>
+            <label>Surname:</label>
+            <input type=""text"" name=""surname"" value=""{WebUtility.HtmlEncode(surname)}"" />
 
-        <label for=""idNumber"">ID Number:</label><br>
-        <input id=""idNumber"" type=""text"" name=""idNumber"" maxlength=""13""
-               pattern=""\d{{13}}"" title=""Must be exactly 13 digits"" required
-               value=""{WebUtility.HtmlEncode(idNumber)}""><br>
+            <label>ID Number:</label>
+            <input type=""text"" name=""idNumber"" maxlength=""13"" pattern=""\d{{13}}"" 
+                   title=""Must be exactly 13 digits"" required value=""{WebUtility.HtmlEncode(idNumber)}"" />
 
-        <label for=""dob"">Date of Birth(dd/mm/yyyy):</label><br>
-        <input id=""dob"" type=""text"" name=""dob"" pattern=""\d{{2}}/\d{{2}}/\d{{4}}""
-               title=""Format:dd/mm/yyyy"" required
-               value=""{WebUtility.HtmlEncode(dob)}""><br><br>
+            <label>Date of Birth:</label>
+            <input type=""date"" name=""dob"" value=""{WebUtility.HtmlEncode(dob)}"" />
 
-        <input type=""submit"" value=""POST"">
-        <input type=""reset"" value=""CANCEL"">
-    </form>
+            <div class=""buttons"">
+                <button type=""submit"" class=""post"">POST</button>
+                <button type=""button"" class=""cancel"" onclick=""window.location.href='/'"">CANCEL</button>
+            </div>
+        </form>
+    </div>
 </body>
 </html>";
     }
