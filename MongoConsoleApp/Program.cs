@@ -60,13 +60,20 @@ class Program
                     errorMsg = "Surname is required.";
                 else if (idNumber.Length != 13 || !long.TryParse(idNumber, out _))
                     errorMsg = "ID Number must be exactly 13 digits.";
-                else if (!Regex.IsMatch(dob, @"^\d{4}-\d{2}-\d{2}$")) // matches <input type="date">
-                    errorMsg = "Date must be yyyy-mm-dd format.";
+                else if (!DateTime.TryParseExact(dob.Trim(), "dd/MM/yyyy", null,
+                         System.Globalization.DateTimeStyles.None, out DateTime parsedDob))
+                    errorMsg = "Date must be dd/MM/yyyy format.";
                 else if (collection.Find(u => u.IdNumber == idNumber).Any())
                     errorMsg = "Duplicate ID Number.";
                 else
                 {
-                    var user = new User { Name = name, Surname = surname, IdNumber = idNumber, DateOfBirth = dob };
+                    var user = new User
+                    {
+                        Name = name,
+                        Surname = surname,
+                        IdNumber = idNumber,
+                        DateOfBirth = parsedDob.ToString("dd/MM/yyyy")
+                    };
                     collection.InsertOne(user);
                     successMsg = "Data saved successfully!";
                 }
@@ -122,7 +129,7 @@ class Program
             font-weight: bold;
             color: #333;
         }}
-        input[type=text], input[type=date] {{
+        input[type=text] {{
             width: 100%;
             padding: 8px;
             margin-bottom: 15px;
@@ -131,7 +138,7 @@ class Program
             box-sizing: border-box;
             transition: border-color 0.3s, box-shadow 0.3s;
         }}
-        input[type=text]:focus, input[type=date]:focus {{
+        input[type=text]:focus {{
             outline: 3px solid #FFCC00;
             box-shadow: 0 0 10px #FFCC00;
             border-color: #FFCC00;
@@ -181,17 +188,19 @@ class Program
 
         <form method=""post"" action=""/submit"">
             <label>Name:</label>
-            <input type=""text"" name=""name"" value=""{WebUtility.HtmlEncode(name)}"" />
+            <input type=""text"" name=""name"" required value=""{WebUtility.HtmlEncode(name)}"" />
 
             <label>Surname:</label>
-            <input type=""text"" name=""surname"" value=""{WebUtility.HtmlEncode(surname)}"" />
+            <input type=""text"" name=""surname"" required value=""{WebUtility.HtmlEncode(surname)}"" />
 
             <label>ID Number:</label>
             <input type=""text"" name=""idNumber"" maxlength=""13"" pattern=""\d{{13}}"" 
                    title=""Must be exactly 13 digits"" required value=""{WebUtility.HtmlEncode(idNumber)}"" />
 
-            <label>Date of Birth:</label>
-            <input type=""date"" name=""dob"" value=""{WebUtility.HtmlEncode(dob)}"" />
+            <label>Date of Birth (dd/MM/yyyy):</label>
+            <input type=""text"" name=""dob"" placeholder=""dd/MM/yyyy""
+                   pattern=""\d{{2}}/\d{{2}}/\d{{4}}"" 
+                   title=""Format: dd/MM/yyyy"" required value=""{WebUtility.HtmlEncode(dob)}"" />
 
             <div class=""buttons"">
                 <button type=""submit"" class=""post"">POST</button>
