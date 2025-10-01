@@ -1,133 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
     <title>User Input Form</title>
     <style>
         body {
-            background: #f7f7f7;
             font-family: Arial, sans-serif;
+            background: #f7f7f7;
+            padding: 30px;
         }
 
-        .container {
+        form {
+            background: #fff;
+            padding: 20px;
             width: 400px;
-            margin: 50px auto;
-            background: #ffffff;
+            margin: auto;
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            padding: 20px;
         }
-
-            .container h2 {
-                text-align: center;
-                color: #333;
-            }
 
         label {
             display: block;
-            margin-bottom: 5px;
+            margin-top: 10px;
             font-weight: bold;
-            color: #333;
         }
 
-        input[type=text], input[type=date] {
+        input[type=text] {
             width: 100%;
             padding: 8px;
-            margin-bottom: 15px;
+            margin-top: 5px;
             border: 1px solid #ccc;
             border-radius: 4px;
-            box-sizing: border-box;
-            transition: border-color 0.3s, box-shadow 0.3s;
         }
 
-            input[type=text]:focus, input[type=date]:focus {
-                outline: 3px solid #FFCC00;
-                box-shadow: 0 0 10px #FFCC00;
-                border-color: #FFCC00;
+            input[type=text]:focus {
+                border-color: #4CAF50;
+                outline: none;
+                box-shadow: 0 0 5px #4CAF50;
             }
 
-        /* Highlight for Date of Birth field */
-        input[name=dob] {
-            background-color: #FFFBCC;
+        button {
+            margin-top: 15px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
         }
 
-        .error {
-            color: red;
-            margin-top: -10px;
-            margin-bottom: 10px;
-            font-size: 13px;
+        .post {
+            background-color: #4CAF50;
         }
 
-        .success {
-            color: green;
-            margin-bottom: 10px;
+        .cancel {
+            background-color: #FA8072;
+            margin-left: 10px;
         }
-
-        .buttons {
-            text-align: center;
-            margin-top: 10px;
-        }
-
-            .buttons button {
-                padding: 10px 20px;
-                border: none;
-                border-radius: 4px;
-                color: white;
-                font-size: 14px;
-                cursor: pointer;
-                margin: 0 5px;
-            }
-
-            .buttons .post {
-                background-color: #4CAF50;
-            }
-
-            .buttons .cancel {
-                background-color: #FA8072;
-            }
-
-            .buttons button:hover {
-                opacity: 0.9;
-            }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>User Information</h2>
+    <h2 style="text-align:center;">Enter Your Details</h2>
 
-        <!-- Example messages (shown only if set by server) -->
-        <div id="success" class="success" style="display: none;">Data saved successfully.</div>
-        <div id="error" class="error" style="display: none;">Please correct the highlighted errors.</div>
+    <form action="http://localhost:5000/save" method="post">
+        
+        <label for="name">Name:</label>
+        <input id="name" type="text" name="name" required>
 
-        <form method="post" action="/submit">
-            <label>Name:</label>
-            <input type="text" name="name" />
-            <span id="err-name" class="error"></span>
+        <label for="surname">Surname:</label>
+        <input id="surname" type="text" name="surname" required>
 
-            <label>Surname:</label>
-            <input type="text" name="surname" />
-            <span id="err-surname" class="error"></span>
+        <label for="idNumber">ID Number:</label>
+        <input id="idNumber" type="text" name="idNumber" maxlength="13"
+               pattern="\d{13}" title="Must be exactly 13 digits" required>
 
-            <label>ID Number:</label>
-            <input type="text"
-                   name="idNumber"
-                   maxlength="13"
-                   pattern="\d{13}"
-                   title="Must be exactly 13 digits"
-                   required />
-            <span id="err-id" class="error"></span>
+        <label for="dob">Date of Birth (dd/mm/yyyy):</label>
+        <input id="dob" type="text" name="dob"
+               placeholder="dd/mm/yyyy"
+               pattern="\d{2}/\d{2}/\d{4}"
+               title="Format: dd/mm/yyyy" required>
 
-            <label>Date of Birth:</label>
-            <input type="date" name="dob" />
-            <span id="err-dob" class="error"></span>
-
-            <div class="buttons">
-                <button type="submit" class="post">POST</button>
-                <button type="button" class="cancel" onclick="window.location.href='/'">CANCEL</button>
-            </div>
-        </form>
-    </div>
+        <div style="text-align:center;">
+            <button type="submit" class="post">POST</button>
+            <button type="reset" class="cancel">CANCEL</button>
+        </div>
+    </form>
 </body>
 </html>
-
