@@ -19,13 +19,13 @@ class Program
 {
     static void Main(string[] args)
     {
-        // Start web server
+        // Start lightweight web server
         HttpListener listener = new HttpListener();
         listener.Prefixes.Add("http://localhost:5000/");
         listener.Start();
         Console.WriteLine("Listening on http://localhost:5000 ...");
 
-        // Connect to MongoDB
+        // Setup MongoDB connection
         var client = new MongoClient("mongodb://localhost:27017");
         var database = client.GetDatabase("TestDB");
         var collection = database.GetCollection<User>("Users");
@@ -40,6 +40,7 @@ class Program
 
             if (request.HttpMethod == "POST" && request.Url.AbsolutePath == "/submit")
             {
+                // Read form body
                 string body;
                 using (var reader = new System.IO.StreamReader(request.InputStream, request.ContentEncoding))
                     body = reader.ReadToEnd();
@@ -53,20 +54,27 @@ class Program
                 string errorMsg = "";
                 string successMsg = "";
 
-                // Validation
+                // Validation sequence
                 if (string.IsNullOrWhiteSpace(name))
                     errorMsg = "Name is required.";
                 else if (string.IsNullOrWhiteSpace(surname))
                     errorMsg = "Surname is required.";
                 else if (idNumber.Length != 13 || !long.TryParse(idNumber, out _))
                     errorMsg = "ID Number must be exactly 13 digits.";
-                else if (!DateTime.TryParseExact(dob.Trim(), "dd/MM/yyyy", null,
-                         System.Globalization.DateTimeStyles.None, out DateTime parsedDob))
+                else if (!DateTime.TryParseExact(
+                             dob.Trim(), 
+                             "dd/MM/yyyy", 
+                             null,
+                             System.Globalization.DateTimeStyles.None, 
+                             out DateTime parsedDob))
+                {
                     errorMsg = "Date must be dd/MM/yyyy format.";
+                }
                 else if (collection.Find(u => u.IdNumber == idNumber).Any())
                     errorMsg = "Duplicate ID Number.";
                 else
                 {
+                    // Format date as dd/MM/yyyy and store into DB
                     var user = new User
                     {
                         Name = name,
@@ -82,11 +90,11 @@ class Program
             }
             else
             {
-                // Default page load
+                // On GET or default, show blank form
                 html = RenderForm("", "", "", "", "", "");
             }
 
-            // Return HTML response
+            // Send HTML response
             byte[] buffer = Encoding.UTF8.GetBytes(html);
             response.ContentType = "text/html; charset=UTF-8";
             response.ContentLength64 = buffer.Length;
@@ -97,7 +105,6 @@ class Program
         }
     }
 
-    // Render styled form with error/success messages
     private static string RenderForm(string name, string surname, string idNumber, string dob, string error = "", string success = "")
     {
         return $@"<!DOCTYPE html>
